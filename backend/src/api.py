@@ -42,10 +42,10 @@ def getDrinks():
 def get_Drink_Details(payload):
     try:
         drinks = Drink.query.all()
-        coffee = [drink.long() for drink in drinks]
+        drinks = [drink.long() for drink in drinks]
         return jsonify({
             'success': True,
-            'drinks': coffee
+            'drinks': drinks
         })
     except:
         abort(422)
@@ -60,7 +60,7 @@ def get_Drink_Details(payload):
 @requires_auth('post:drinks')
 def new_drinks(payload):
     try:
-        data = request.get_json()['title'] and request.get_json()['contents']
+        data = request.get_json()['title'] and request.get_json()['recipe']
         if not data:
             abort(400)
     except (TypeError, KeyError):
@@ -70,7 +70,7 @@ def new_drinks(payload):
         abort(409)
 
     try:
-        Drink(title=request.get_json()['title'], contents=json.dumps(request.get_json()['contents'])).insert()
+        Drink(title=request.get_json()['title'], recipe=json.dumps(request.get_json()['recipe'])).insert()
         drink = Drink.query.filter_by(title=request.get_json()['title']).first()
         return jsonify({
             'success': True,
@@ -91,7 +91,7 @@ def new_drinks(payload):
 @requires_auth('patch:drinks')
 def edit_drinks(payload, drink_id):
     try:
-        data = request.get_json()['title'] or request.get_json()['contents']
+        data = request.get_json()['title'] or request.get_json()['recipe']
         if not data:
             abort(400)
     except (TypeError, KeyError):
@@ -104,12 +104,12 @@ def edit_drinks(payload, drink_id):
     try:
         if request.get_json().get('title'):
             drink.title = request.get_json()['title']
-        if request.get_json().get('contents'):
-            drink.contents = json.dumps(request.get_json()['contents'])
+        if request.get_json().get('recipe'):
+            drink.recipe = json.dumps(request.get_json()['recipe'])
         drink.update()
         return jsonify({
             'success': True,
-            'drinks': [drink.long()]
+            'drinks': drink.long()
         }), 200
     except:
         abort(422)
