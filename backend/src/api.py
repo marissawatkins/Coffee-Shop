@@ -12,7 +12,7 @@ setup_db(app)
 CORS(app)
 
 '''
-@TODO uncomment the following line to initialize the datbase
+@uncomment the following line to initialize the datbase
 !! NOTE THIS WILL DROP ALL RECORDS AND START YOUR DB FROM SCRATCH
 !! NOTE THIS MUST BE UNCOMMENTED ON FIRST RUN
 '''
@@ -39,14 +39,14 @@ def getDrinks():
 
 @app.route('/drinks-detail')
 @requires_auth('get:drinks-detail')
-def get_Drink_Details(payload):
+def get_drink_details(token):
     try:
         drinks = Drink.query.all()
         drinks = [drink.long() for drink in drinks]
         return jsonify({
             'success': True,
             'drinks': drinks
-        })
+        }), 200
     except:
         abort(422)
 # implement endpoint
@@ -58,7 +58,7 @@ def get_Drink_Details(payload):
 
 @app.route('/drinks', methods=['POST'])
 @requires_auth('post:drinks')
-def new_drinks(payload):
+def new_drinks(token):
     try:
         data = request.get_json()['title'] and request.get_json()['recipe']
         if not data:
@@ -89,7 +89,7 @@ def new_drinks(payload):
 
 @app.route('/drinks/<int:drink_id>', methods=['PATCH'])
 @requires_auth('patch:drinks')
-def edit_drinks(payload, drink_id):
+def edit_drinks(token, drink_id):
     try:
         data = request.get_json()['title'] or request.get_json()['recipe']
         if not data:
@@ -127,6 +127,16 @@ def edit_drinks(payload, drink_id):
 @app.route('/drinks/<int:drink_id>', methods=['DELETE'])
 @requires_auth('delete:drinks')
 def delete_drinks(payload, drink_id):
+    # try:
+    #     delete_drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
+
+    #     delete_drink.delete()
+    #     return jsonify({
+    #         'success': True,
+    #         'delete': drink_id
+    #     })
+    # except:
+    #     abort(404)
     drink = Drink.query.filter_by(id=drink_id).first()
     if drink is None:
         abort(404)
