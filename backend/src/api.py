@@ -39,15 +39,15 @@ def getDrinks():
 
 @app.route('/drinks-detail')
 @requires_auth('get:drinks-detail')
-def get_drink_details(token):
+def get_drink_details(payload):
     try:
         drinks = Drink.query.all()
         drinks = [drink.long() for drink in drinks]
         return jsonify({
             'success': True,
             'drinks': drinks
-        }), 200
-    except:
+        })#, 200
+    except Exception:
         abort(422)
 # implement endpoint
 # GET /drinks-detail
@@ -58,27 +58,22 @@ def get_drink_details(token):
 
 @app.route('/drinks', methods=['POST'])
 @requires_auth('post:drinks')
-def new_drinks(token):
+def new_drinks(payload):
     try:
-        data = request.get_json()['title'] and request.get_json()['recipe']
-        if not data:
-            abort(400)
-    except (TypeError, KeyError):
-        abort(400)
-
-    if Drink.query.filter_by(title=request.get_json()['title']).first():
-        abort(409)
-
-    try:
-        Drink(title=request.get_json()['title'], recipe=json.dumps(request.get_json()['recipe'])).insert()
-        drink = Drink.query.filter_by(title=request.get_json()['title']).first()
+        body = request.get_json()
+        if body is None:
+            abort(404)
+        new_title = body.get('title')
+        new_recipe = body.get('recipe')
+        new_drink = Drink(title=new_title, recipe=json.dumps(new_recipe))
+        new_drink.insert()
+        new_drink = Drink.query.filter_by(id=new_drink.id).first()
         return jsonify({
             'success': True,
-            'drinks': drink.long()
-        }), 201
+            'drinks': [new_drink.long()]
+        })
     except:
         abort(422)
-        
 # implement endpoint
 # POST /drinks
 # it should create a new row in the drinks table
@@ -89,29 +84,22 @@ def new_drinks(token):
 
 @app.route('/drinks/<int:drink_id>', methods=['PATCH'])
 @requires_auth('patch:drinks')
-def edit_drinks(token, drink_id):
-    try:
-        data = request.get_json()['title'] or request.get_json()['recipe']
-        if not data:
-            abort(400)
-    except (TypeError, KeyError):
-        abort(400)
-
+def edit_drinks(payload, drink_id):
     drink = Drink.query.filter_by(id=drink_id).first()
-    if not drink:
+    if drink is None:
         abort(404)
-
+    data = lambda val: request.get_json().get(val)
     try:
-        if request.get_json().get('title'):
+        if data('title'):
             drink.title = request.get_json()['title']
-        if request.get_json().get('recipe'):
+        if data('recipe'):
             drink.recipe = json.dumps(request.get_json()['recipe'])
         drink.update()
         return jsonify({
             'success': True,
-            'drinks': drink.long()
+            'drinks': [drink.long()]
         }), 200
-    except:
+    except Exception:
         abort(422)
 
 # implement endpoint
@@ -127,16 +115,6 @@ def edit_drinks(token, drink_id):
 @app.route('/drinks/<int:drink_id>', methods=['DELETE'])
 @requires_auth('delete:drinks')
 def delete_drinks(payload, drink_id):
-    # try:
-    #     delete_drink = Drink.query.filter(Drink.id == drink_id).one_or_none()
-
-    #     delete_drink.delete()
-    #     return jsonify({
-    #         'success': True,
-    #         'delete': drink_id
-    #     })
-    # except:
-    #     abort(404)
     drink = Drink.query.filter_by(id=drink_id).first()
     if drink is None:
         abort(404)
@@ -158,8 +136,6 @@ def delete_drinks(payload, drink_id):
 # it should require the 'delete:drinks' permission
 # returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
 # or appropriate status code indicating reason for failure
-
-
 
 ## Error Handling
 '''
@@ -184,7 +160,7 @@ def not_found(error):
             }), 404
 # implement error handler for 404 error handler should conform to general task above 
 
-@app.errorhandler(401)
+@app.errorhandler(AuthError)
 def authError(error):
     return jsonify({
             "success": False, 

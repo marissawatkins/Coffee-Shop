@@ -2,11 +2,8 @@ import json
 from flask import request, _request_ctx_stack
 from functools import wraps
 from jose import jwt
-# from urllib.request import urlopen
-#https://{{YOUR_DOMAIN}}/authorize?audience={{API_IDENTIFIER}}&response_type=tok
-#https://marswatkins.auth0.com/authorize?audience=coffeeshop&response_type=token&client_id=aa92SyG0m62pbWpOCnzHBxDbM6nnl9My&redirect_uri=http://localhost:5432/login-results
-#manager: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik5qWXlNRVUwTUVRME4wVTVPVEl4TjBVMlF6azNORGN5TWpsRE1UUkROalpFTWpNeU9ERXdNUSJ9.eyJpc3MiOiJodHRwczovL21hcnN3YXRraW5zLmF1dGgwLmNvbS8iLCJzdWIiOiJhdXRoMHw1ZTg0ZjViMGFkMzQ1OTBiZTFkZGNjZDYiLCJhdWQiOiJjb2ZmZWVzaG9wIiwiaWF0IjoxNTg1NzczNDIyLCJleHAiOjE1ODU3ODA2MjIsImF6cCI6ImFhOTJTeUcwbTYycGJXcE9DbnpIQnhEYk02bm5sOU15Iiwic2NvcGUiOiIiLCJwZXJtaXNzaW9ucyI6WyJkZWxldGU6ZHJpbmtzIiwiZ2V0OmRyaW5rcy1kZXRhaWwiLCJwYXRjaDpkcmlua3MiLCJwb3N0OmRyaW5rcyJdfQ.KbLXkyOzhOc4L-YmpbncIIsS5PAd-qMiGIQJFuhQu9DNNy3O6kRQXgZHvjZpgRIHp_mrxBga5OCJYUkLCvhVJUMEFLe251D-3ZLWY8IzTzbBHOlWxO1VjMzgRYRCxaBn27pUuRLu5LMnx9zOa4YaGYRjsBTO3qH7Bl-bSiIY3KRGv9qgfr981-bKd4Fo-RsaEyKDRRdWusK3CugTFKvcMbn9XJfCZxCioP4cGiG20CYXu28I2XIZdgCOz10wDmxhtg-dD5ml4RGJCkXkwHEjVSMQJyEMd5ezDGueBxeIVHVkR3lV9Wdi8AV6RoTt2aaZFZV98I-dZ4G1fpC4NO2hKw
-#barista: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik5qWXlNRVUwTUVRME4wVTVPVEl4TjBVMlF6azNORGN5TWpsRE1UUkROalpFTWpNeU9ERXdNUSJ9.eyJpc3MiOiJodHRwczovL21hcnN3YXRraW5zLmF1dGgwLmNvbS8iLCJzdWIiOiJhdXRoMHw1ZTg0ZmFmM2FiODhkNDBiZThhMmU2N2QiLCJhdWQiOiJjb2ZmZWVzaG9wIiwiaWF0IjoxNTg1ODQyMTgzLCJleHAiOjE1ODU4NDkzODMsImF6cCI6ImFhOTJTeUcwbTYycGJXcE9DbnpIQnhEYk02bm5sOU15Iiwic2NvcGUiOiIiLCJwZXJtaXNzaW9ucyI6WyJnZXQ6ZHJpbmtzLWRldGFpbCJdfQ.ehEacdKLzqYat8HQ5tdgu5fJZFL98bmn0BI-iRq8STqjfWcRQbvh41w438GPAn4AKKfF4q5R1_OR4LFqdI9_0rWQiejsTao84twQnXhgqF6vh_Fte82mw6AtShQW_5kZejtKKBR5PYSc_3nD5DHDVDpJco52P8CB2X4DKnbB168SQS_RcvwosaUhVeHCW2mWyCJhFwa-qDowjM0jhurTcKcIMLxlVLtrx8b00tyVclm5YkPyKVOgNXKDzTeDxNDXxFp2Y0pSW4OEBPAzQ7LLaD0fZr8vzu5irv_1Q71mmNyw3J2zJSuMIF3sYea9-26ZoAzbJos8OsKqdzB3jz0m9w
+from urllib.request import urlopen
+#https://{{YOUR_DOMAIN}}/authorize?audience={{API_IDENTIFIER}}&response_type=token&client_id={{YOUR_CLIENT_ID}}&redirect_uri={{YOUR_CALLBACK_URI}}
 
 AUTH0_DOMAIN = 'marswatkins.auth0.com'
 ALGORITHMS = ['RS256']
@@ -34,7 +31,7 @@ def get_token_auth_header():
     }, 401)
 
     parts = auth.split()
-    if part[0].lower() != 'bearer':
+    if parts[0].lower() != 'bearer':
         raise AuthError({
             'code': 'invalid_header',
             'description': 'Authorized header must start with "bearer"'
@@ -74,8 +71,8 @@ def check_permissions(permission, payload):
 # it should raise an AuthError if the requested permission string is not in the payload permissions array return true otherwise
 
 def verify_decode_jwt(token):
-    jsonurl = urlopen('https://{AUTH0_DOMAIN}/.well-known/jwks.json')
-    jwts = json.loads(jsonurl.read())
+    jsonurl = urlopen(f'https://{AUTH0_DOMAIN}/.well-known/jwks.json')
+    jwks = json.loads(jsonurl.read())
     unverified_header = jwt.get_unverified_header(token)
     rsa_key = {}
     if 'kid' not in unverified_header:
@@ -84,7 +81,7 @@ def verify_decode_jwt(token):
             'description': 'Authorized malformed.'
     }, 401)
 
-    for key in jwts['keys']:
+    for key in jwks['keys']:
         if key['kid'] == unverified_header['kid']:
             rsa_key = {
                 'kty': key['kty'],
@@ -103,9 +100,9 @@ def verify_decode_jwt(token):
         except jwt.ExpiredSignatureError:
             raise AuthError({
                 'code': 'token_expired',
-                'description': 'Token Expired'
-        }, 401)
-
+                'description': 'Token expired.'
+            }, 401)
+            
         except jwt.JWTClaimsError:
             raise AuthError({
                 'code': 'invalid_claims',
@@ -117,9 +114,9 @@ def verify_decode_jwt(token):
                 'description': 'Unable to parse authentication token'
             }, 400)
     raise AuthError({
-        'code': 'invalid_header',
-        'description': 'Unable to find the appropriate key'
-    }, 400)
+            'code': 'invalid_header',
+            'description': 'Unable to find the appropriate key'
+        }, 400)
 
 # implement verify_decode_jwt(token) method
 # @INPUTS
@@ -135,14 +132,8 @@ def requires_auth(permission=''):
     def requires_auth_decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            try:
-                token = get_token_auth_header()
-            except:
-                abort(401)
-            try:
-                payload = verify_decode_jwt(token)
-            except:
-                abort(401)
+            token = get_token_auth_header()
+            payload = verify_decode_jwt(token)
             check_permissions(permission, payload)
             return f(payload, *args, **kwargs)
 
